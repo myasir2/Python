@@ -23,9 +23,11 @@ labelEncoder = LabelEncoder()
 x[:, 1] = labelEncoder.fit_transform(x[:, 1])
 x[:, 2] = labelEncoder.fit_transform(x[:, 2])
 
+sc = StandardScaler()
+oneHotEncoder = OneHotEncoder()
 columnTransformer = make_column_transformer(
-                        ([0, 3, 4, 5, 6, 7, 8, 9], StandardScaler()),
-                        ([1], OneHotEncoder())
+                        ([0, 3, 4, 5, 6, 7, 8, 9], sc),
+                        ([1], oneHotEncoder)
                        )
 x = columnTransformer.fit_transform(x)
 
@@ -54,6 +56,11 @@ classifier.fit(xTrain, yTrain, batch_size = 10, epochs = 100)
 # Prediction
 yPred = classifier.predict(xTest)
 yPred = (yPred > 0.5)
+
+newPrediction = classifier.predict(columnTransformer.transform(np.array([
+        [0, 0, 600, 1, 40, 3, 60000, 2, 1, 1, 50000]
+    ])))
+newPrediction = (newPrediction > 0.5)
 
 # confusion matrix to measure accuracy
 from sklearn.metrics import confusion_matrix
