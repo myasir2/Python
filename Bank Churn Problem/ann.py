@@ -10,15 +10,32 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 
-# Setting independent and dependent vars
+# Encoding data
+from sklearn.preprocessing import LabelEncoder, OneHotEncoder, StandardScaler
+from sklearn.compose import make_column_transformer
+# Splitting into Train set and Test set
+from sklearn.model_selection import train_test_split
+
+# Part 2 - ANN
+import keras
+from keras.models import Sequential
+from keras.layers import Dense
+from keras.wrappers.scikit_learn import KerasClassifier
+from sklearn.model_selection import cross_val_score
+
+def buildClassifier():
+    classifier = Sequential()
+    classifier.add(Dense(units = 6, kernel_initializer = "uniform", activation = "relu", input_dim = 11))
+    classifier.add(Dense(units = 6, kernel_initializer = "uniform", activation = "relu"))
+    classifier.add(Dense(units = 1, kernel_initializer = "uniform", activation = "sigmoid"))
+    classifier.compile(optimizer = "adam", loss = "binary_crossentropy", metrics = ['accuracy'])
+    return classifier
+
 dataset = pd.read_csv("Churn_Modelling.csv")
 x = dataset.iloc[:, 3:13].values
 xDataFrame = pd.DataFrame(x)
 y = dataset.iloc[:, 13].values
 
-# Encoding data
-from sklearn.preprocessing import LabelEncoder, OneHotEncoder, StandardScaler
-from sklearn.compose import make_column_transformer
 labelEncoder = LabelEncoder()
 x[:, 1] = labelEncoder.fit_transform(x[:, 1])
 x[:, 2] = labelEncoder.fit_transform(x[:, 2])
@@ -31,37 +48,30 @@ columnTransformer = make_column_transformer(
 x = np.vstack(x[:,:]).astype(np.float)
 x = columnTransformer.fit_transform(x)
 
-# Splitting into Train set and Test set
-from sklearn.model_selection import train_test_split
 xTrain, xTest, yTrain, yTest = train_test_split(x, y, test_size = 0.20, random_state = 0)
 
-# Part 2 - ANN
-import keras
-from keras.models import Sequential
-from keras.layers import Dense
-
-classifier = Sequential()
-
-# Add input layer and first hidden layer
-classifier.add(Dense(units = 6, kernel_initializer = "uniform", activation = "relu", input_dim = 11))
-classifier.add(Dense(units = 6, kernel_initializer = "uniform", activation = "relu"))
-classifier.add(Dense(units = 1, kernel_initializer = "uniform", activation = "sigmoid"))
-
-# Compile ann
-classifier.compile(optimizer = "adam", loss = "binary_crossentropy", metrics = ['accuracy'])
+classifier = KerasClassifier(build_fn = buildClassifier, batch_size = 10, epochs = 100)
+accuracies = cross_val_score(estimator = classifier, X = xTrain, y = yTrain, cv = 10, n_jobs = -1)
 
 # Fit ann into the test set
-classifier.fit(xTrain, yTrain, batch_size = 10, epochs = 100)
+#classifier.fit(xTrain, yTrain, batch_size = 10, epochs = 100)
+#
+## Prediction
+#yPred = classifier.predict(xTest)
+#yPred = (yPred > 0.5)
+#
+#newPredictionData = np.array([[619, 0, 0, 42, 2, 0, 1, 1, 1, 101349]]).astype(np.float)
+#newPredictionTransformed = columnTransformer.transform(newPredictionData)
+#newPrediction = classifier.predict(newPredictionTransformed)
+#newPrediction = (newPrediction > 0.5)
+#
+## confusion matrix to measure accuracy
+#from sklearn.metrics import confusion_matrix
+#matrix = confusion_matrix(yTest, yPred)
 
-# Prediction
-yPred = classifier.predict(xTest)
-yPred = (yPred > 0.5)
 
-newPredictionData = np.array([[619, 0, 0, 42, 2, 0, 1, 1, 1, 101349]]).astype(np.float)
-newPredictionTransformed = columnTransformer.transform(newPredictionData)
-newPrediction = classifier.predict(newPredictionTransformed)
-newPrediction = (newPrediction > 0.5)
 
-# confusion matrix to measure accuracy
-from sklearn.metrics import confusion_matrix
-matrix = confusion_matrix(yTest, yPred)
+
+
+
+
