@@ -38,15 +38,17 @@ weekly_data = daily_data.resample('W').apply(sum)
 plotly_df(weekly_data, title = 'Posts on Medium(weekly)')
 
 # Prophet data pre-processing
-data = daily_data.reset_index()
+data = weekly_data.reset_index()
 data.columns = ['ds', 'y']
+data['ds'] = data['ds'].dt.tz_convert(None)
 data.tail()
 
 # Train/Future split
-train = data[: -30]
+prediction_period = 4
+train = data[: -prediction_period]
 prophet = Prophet()
 prophet.fit(train)
-future = prophet.make_future_dataframe(periods = 30)
+future = prophet.make_future_dataframe(periods = prediction_period, freq = 'W')
 
 # Forecast
 forecast = prophet.predict(future)
@@ -55,9 +57,9 @@ prophet.plot_components(forecast)
 
 # Evaluation
 evaluation = make_comparison_dataframe(data, forecast)
-for err_name, err_value in calculate_forecast_errors(evaluation, 30).items():
+for err_name, err_value in calculate_forecast_errors(evaluation, prediction_period).items():
     print(err_name, err_value)
-show_forecast(evaluation, 30, 100, 'New posts on Medium')
+show_forecast(evaluation, prediction_period, 100, 'New posts on Medium')
 
 # Box-Cox transformation
 train2 = train.copy()
@@ -66,7 +68,7 @@ train2['y'], lambda_prophet = stats.boxcox(train2['y'])
 # Initialize new Prophet forecast
 prophet2 = Prophet()
 prophet2.fit(train2)
-future2 = prophet2.make_future_dataframe(periods = 30)
+future2 = prophet2.make_future_dataframe(periods = prediction_period, freq = 'W')
 forecast2 = prophet2.predict(future2)
 
 prophet2.plot(forecast)
@@ -77,9 +79,9 @@ for column in ['yhat', 'yhat_lower', 'yhat_upper']:
 
 # Evaluation
 evaluation2 = make_comparison_dataframe(data, forecast2)
-for err_name, err_value in calculate_forecast_errors(evaluation2, 30).items():
+for err_name, err_value in calculate_forecast_errors(evaluation2, prediction_period).items():
     print(err_name, err_value)
-show_forecast(evaluation2, 30, 100, 'New posts on Medium')
+show_forecast(evaluation2, prediction_period, 100, 'New posts on Medium')
 
 def plotly_df(df, title=''):
     """Visualize all the dataframe columns as line plots."""
